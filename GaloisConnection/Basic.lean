@@ -8,6 +8,17 @@ class Poset (α : Type*) where
 
 notation:20 x " ≤[" α "] " y => @Poset.le α _ x y
 
+class CompleteLattice (L : Type*) extends Poset L where
+  sup    : Set L → L
+  inf    : Set L → L
+  le_sup : ∀ {s x}, x ∈ s → le x (sup s)
+  sup_le : ∀ {s y}, (∀ x ∈ s, le x y) → le (sup s) y
+  inf_le : ∀ {s x}, x ∈ s → le (inf s) x
+  le_inf : ∀ {s y}, (∀ x ∈ s, le y x) → le y (inf s)
+
+notation:50 "⊔" s => CompleteLattice.sup s
+notation:50 "⊓" s => CompleteLattice.inf s
+
 def monotone {L M : Type*} [Poset L] [Poset M] (f : L → M) : Prop :=
   ∀ x y, (x ≤[L] y) → (f x ≤[M] f y)
 
@@ -113,19 +124,10 @@ theorem galois_gamma_idem {L M : Type*} [Poset L] [Poset M]
   have h5 : gamma (alpha (gamma m)) = gamma m := Poset.le_antisym h2 h4
   exact h5
 
------------------------------------------------
--- α は完全加法的, γ は完全乗法的
------------------------------------------------
-class CompleteLattice (L : Type*) extends Poset L where
-  sup    : Set L → L
-  inf    : Set L → L
-  le_sup : ∀ {s x}, x ∈ s → le x (sup s)
-  sup_le : ∀ {s y}, (∀ x ∈ s, le x y) → le (sup s) y
-  inf_le : ∀ {s x}, x ∈ s → le (inf s) x
-  le_inf : ∀ {s y}, (∀ x ∈ s, le y x) → le y (inf s)
 
-notation:50 "⊔" s => CompleteLattice.sup s
-notation:50 "⊓" s => CompleteLattice.inf s
+-----------------------------------------------
+-- α は完全加法的
+-----------------------------------------------
 
 -- alpha (sup L') ≤ ub  <->  sup (alpha '' L') ≤ ub
 lemma alpha_preserve_ub {L M : Type*} [CompleteLattice L] [CompleteLattice M]
@@ -202,6 +204,7 @@ theorem galois_to_alpha_is_additive {L M : Type*} [CompleteLattice L] [CompleteL
 -- とくに L, M が完備束のとき
 -- gamma (m) = sup { l | alpha(l) ≤ m }
 -----------------------------------------------
+
 theorem galois_gamma_uniqueness {L M : Type*} [Poset L] [Poset M]
   {alpha : L → M} {gamma1 gamma2 : M → L}
   (gc1 : GaloisConnection alpha gamma1)
@@ -237,6 +240,7 @@ lemma sup_subset_to_le {L : Type*} [CompleteLattice L] {a b : Set L}
   have : x ≤[L] ⊔ b := CompleteLattice.le_sup this
   exact this
 
+-- gamma_by_alpha は単調
 lemma gamma_by_alpha_mono {L M : Type*} [CompleteLattice L] [CompleteLattice M]
   (alpha : L → M) :
   monotone (gamma_by_alpha alpha) := by
@@ -261,6 +265,7 @@ lemma gamma_by_alpha_unit {L M : Type*} [CompleteLattice L] [CompleteLattice M]
     have : l ≤[L] (gamma_by_alpha alpha) (alpha l) := CompleteLattice.le_sup this
     exact this
 
+-- γ (m) = sup { l | α(l) ≤ m } は条件満たす
 def determine_gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice M]
   {alpha : L → M} {gamma : M → L}
   (gc : GaloisConnection alpha gamma) :
@@ -283,6 +288,7 @@ def determine_gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice 
       exact this
   }
 
+
 theorem galois_gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice M]
   {alpha : L → M} {gamma : M → L}
   (gc : GaloisConnection alpha gamma) :
@@ -292,6 +298,10 @@ theorem galois_gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice
     determine_gamma_by_alpha gc
   have h : ∀ m, gamma m = (gamma_by_alpha alpha) m := galois_gamma_uniqueness gc gc'
   exact h m
+
+---------------------------------------------------
+-- α が完全加法的ならば Galois 接続 (L, α, γ, M) が存在
+---------------------------------------------------
 
 -- x ≤ y -> sup {x, y} = y
 lemma sup_pair_eq_right {L : Type*} [CompleteLattice L] {x y : L}
@@ -314,7 +324,8 @@ lemma sup_pair_eq_right {L : Type*} [CompleteLattice L] {x y : L}
   have : (⊔ {x, y}) = y := Poset.le_antisym h1 h2
   exact this
 
-theorem alpha_additive_to_galois {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M}
+-- α が完全加法的ならば Galois 接続が構成できる
+lemma alpha_additive_to_galois {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M}
   (alpha_additive : ∀ L' : Set L, alpha (⊔ L') = (⊔ (alpha '' L'))) :
   GaloisConnection alpha (gamma_by_alpha alpha) := {
     alpha_mon := by
@@ -351,3 +362,26 @@ theorem alpha_additive_to_galois {L M : Type*} [CompleteLattice L] [CompleteLatt
         exact h1
       exact this
   }
+
+-- α が完全加法的ならば Galois 接続が存在
+theorem galois_exists_if_alpha_is_additive {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M}
+  (alpha_additive : ∀ L' : Set L, alpha (⊔ L') = (⊔ (alpha '' L'))) :
+  ∃ gamma : M → L, GaloisConnection alpha gamma := by
+  let gamma := gamma_by_alpha alpha
+  have : GaloisConnection alpha gamma := alpha_additive_to_galois alpha_additive
+  exact ⟨gamma, this⟩
+
+-- L, M が完備束のとき
+-- α が完全加法的であることと Galois 接続が存在することは同値
+theorem galois_iff_alpha_is_additive {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M} :
+  (∃ gamma : M → L, GaloisConnection alpha gamma) ↔ (∀ L' : Set L, alpha (⊔ L') = (⊔ (alpha '' L'))) := by
+  constructor
+  case mp =>
+    intros h L'
+    obtain ⟨gamma, gc⟩ := h
+    have : alpha (⊔ L') = (⊔ (alpha '' L')) := galois_to_alpha_is_additive gc L'
+    exact this
+  case mpr =>
+    intros h
+    have : ∃ gamma : M → L, GaloisConnection alpha gamma := galois_exists_if_alpha_is_additive h
+    exact this
