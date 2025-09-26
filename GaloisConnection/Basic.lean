@@ -404,3 +404,76 @@ theorem galois_iff_alpha_is_additive {L M : Type*} [CompleteLattice L] [Complete
     intros h
     have : ∃ gamma : M → L, GaloisConnection alpha gamma := galois_exists_if_alpha_is_additive h
     exact this
+
+----------------------------------------------------
+-- 完備束 (L₁, ⊔₁, ⊓₁), (L₂, ⊔₂, ⊓₂) と (L₁, L₂ は互いに素)
+-- α : L₂ → L₁, γ : L₁ → L₂ について
+-- 条件: (L₁, α, γ, L₂) が Galois 接続 は
+--
+-- L₁ ∪ L₂ 上の二項演算 ⊔, ⊓ を
+--
+-- a ⊔ b :=   a    ⊔₁   b  (if a, b ∈ L₁)
+--            a    ⊔₂   b  (if a, b ∈ L₂)
+--            a    ⊔₁ α(b) (if a ∈ L₁, b ∈ L₂)
+--          α(a)   ⊔₁   b  (if a ∈ L₂, b ∈ L₁)
+--
+-- a ⊓ b :=   a    ⊓₁   b  (if a, b ∈ L₁)
+--            a    ⊓₂   b  (if a, b ∈ L₂)
+--          γ(a)   ⊓₂   b  (if a ∈ L₁, b ∈ L₂)
+--            a    ⊓₂ γ(b) (if a ∈ L₂, b ∈ L₁)
+
+-- により定めたとき
+-- (L₁ ∪ L₂, ⊔, ⊓) が完備束となることと同値
+----------------------------------------------------
+def sup_union {L₁ L₂ : Type*} [CompleteLattice L₁] [CompleteLattice L₂]
+  (alpha : L₂ → L₁) :
+  (L₁ ⊕ L₂) → (L₁ ⊕ L₂) → (L₁ ⊕ L₂) := fun a b =>
+    match a, b with
+    | Sum.inl a1, Sum.inl b1 => Sum.inl (⊔ {a1, b1})
+    | Sum.inr a2, Sum.inr b2 => Sum.inr (⊔ {a2, b2})
+    | Sum.inl a1, Sum.inr b2 => Sum.inl (⊔ {a1, alpha b2})
+    | Sum.inr a2, Sum.inl b1 => Sum.inl (⊔ {alpha a2, b1})
+
+def inf_union {L₁ L₂ : Type*} [CompleteLattice L₁] [CompleteLattice L₂]
+  (gamma : L₁ → L₂) :
+  (L₁ ⊕ L₂) → (L₁ ⊕ L₂) → (L₁ ⊕ L₂) := fun a b =>
+    match a, b with
+    | Sum.inl a1, Sum.inl b1 => Sum.inl (⊓ {a1, b1})
+    | Sum.inr a2, Sum.inr b2 => Sum.inr (⊓ {a2, b2})
+    | Sum.inl a1, Sum.inr b2 => Sum.inr (⊓ {gamma a1, b2})
+    | Sum.inr a2, Sum.inl b1 => Sum.inr (⊓ {a2, gamma b1})
+
+
+lemma sup_union_refl {L₁ L₂ : Type*} [CompleteLattice L₁] [CompleteLattice L₂]
+  {alpha : L₂ → L₁} :
+  ∀ x : L₁ ⊕ L₂, sup_union alpha x x = x := by
+    intro x
+    unfold sup_union
+    cases x
+    case inl a =>
+      simp
+      apply sup_pair_eq_right (Poset.le_refl a)
+    case inr a =>
+      simp
+      apply sup_pair_eq_right (Poset.le_refl a)
+
+
+lemma inf_union_refl {L₁ L₂ : Type*} [CompleteLattice L₁] [CompleteLattice L₂]
+  {gamma : L₁ → L₂} :
+  ∀ x : L₁ ⊕ L₂, inf_union gamma x x = x := by
+    intro x
+    unfold inf_union
+    cases x
+    case inl a =>
+      simp
+      apply inf_pair_eq_left (Poset.le_refl a)
+    case inr a =>
+      simp
+      apply inf_pair_eq_left (Poset.le_refl a)
+
+lemma sup_uniono_conn {L₁ L₂ : Type*} [CompleteLattice L₁] [CompleteLattice L₂]
+  {alpha : L₂ → L₁} {gamma : L₁ → L₂}
+  (gc : GaloisConnection alpha gamma) :
+  ∀ x y z : L₁ ⊕ L₂, (sup_union alpha   (sup_union alpha x y) z) =
+                     (sup_union alpha x (sup_union alpha y z)) := by
+    intros x y z
