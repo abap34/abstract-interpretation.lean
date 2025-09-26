@@ -321,8 +321,27 @@ lemma sup_pair_eq_right {L : Type*} [CompleteLattice L] {x y : L}
     apply CompleteLattice.le_sup
     right
     exact rfl
-  have : (⊔ {x, y}) = y := Poset.le_antisym h1 h2
-  exact this
+  exact Poset.le_antisym h1 h2
+
+-- x ≤ y -> inf {x, y} = x
+lemma inf_pair_eq_left {L : Type*} [CompleteLattice L] {x y : L}
+  (h : x ≤[L] y) :
+  (⊓ {x, y}) = x := by
+  have h1 : x ≤[L] (⊓ {x, y}) := by
+    apply CompleteLattice.le_inf
+    intros z z_in
+    cases z_in
+    case a.inl x_eq =>
+      rw [x_eq]
+      exact Poset.le_refl x
+    case a.inr y_eq =>
+      rw [y_eq]
+      exact h
+  have h2 : (⊓ {x, y}) ≤[L] x := by
+    apply CompleteLattice.inf_le
+    left
+    exact rfl
+  exact Poset.le_antisym h2 h1
 
 -- α が完全加法的ならば Galois 接続が構成できる
 lemma alpha_additive_to_galois {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M}
