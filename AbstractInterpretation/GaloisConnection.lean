@@ -1,5 +1,5 @@
-import GaloisConnection.Poset
-import GaloisConnection.CompleteLattice
+import AbstractInterpretation.Order.Poset
+import AbstractInterpretation.Order.CompleteLattice
 
 structure GaloisConnection {L M : Type*} [Poset L] [Poset M]
   (alpha : L → M) (gamma : M → L) : Prop where

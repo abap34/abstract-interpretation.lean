@@ -1,4 +1,4 @@
-import GaloisConnection.Poset
+import AbstractInterpretation.Order.Poset
 import Mathlib.Data.Set.Basic
 
 class CompleteLattice (L : Type*) extends Poset L where
