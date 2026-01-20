@@ -1,26 +1,5 @@
-import Mathlib.Data.Set.Basic
-
-class Poset (α : Type*) where
-  le : α → α → Prop
-  le_refl : ∀ x, le x x
-  le_trans : ∀ {x y z}, le x y → le y z → le x z
-  le_antisym : ∀ {x y}, le x y → le y x → x = y
-
-notation:20 x " ≤[" α "] " y => @Poset.le α _ x y
-
-class CompleteLattice (L : Type*) extends Poset L where
-  sup    : Set L → L
-  inf    : Set L → L
-  le_sup : ∀ {s x}, x ∈ s → le x (sup s)
-  sup_le : ∀ {s y}, (∀ x ∈ s, le x y) → le (sup s) y
-  inf_le : ∀ {s x}, x ∈ s → le (inf s) x
-  le_inf : ∀ {s y}, (∀ x ∈ s, le y x) → le y (inf s)
-
-notation:50 "⊔" s => CompleteLattice.sup s
-notation:50 "⊓" s => CompleteLattice.inf s
-
-def monotone {L M : Type*} [Poset L] [Poset M] (f : L → M) : Prop :=
-  ∀ x y, (x ≤[L] y) → (f x ≤[M] f y)
+import GaloisConnection.Poset
+import GaloisConnection.CompleteLattice
 
 structure GaloisConnection {L M : Type*} [Poset L] [Poset M]
   (alpha : L → M) (gamma : M → L) : Prop where
@@ -31,7 +10,7 @@ structure GaloisConnection {L M : Type*} [Poset L] [Poset M]
 
 -----------------------------------------------
 -- Galois 接続 <-> Adjunction
------------------------------------------------m
+-----------------------------------------------
 structure Adjunction {L M : Type*} [Poset L] [Poset M]
   (alpha : L → M) (gamma : M → L) : Prop where
   adj : ∀ l m, (l ≤[L] gamma m) ↔ (alpha l ≤[M] m)
@@ -204,7 +183,6 @@ theorem galois_to_alpha_is_additive {L M : Type*} [CompleteLattice L] [CompleteL
 -- とくに L, M が完備束のとき
 -- gamma (m) = sup { l | alpha(l) ≤ m }
 -----------------------------------------------
-
 theorem galois_gamma_uniqueness {L M : Type*} [Poset L] [Poset M]
   {alpha : L → M} {gamma1 gamma2 : M → L}
   (gc1 : GaloisConnection alpha gamma1)
@@ -229,16 +207,6 @@ theorem galois_gamma_uniqueness {L M : Type*} [Poset L] [Poset M]
 def gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice M]
   (alpha : L → M) :
   M → L := fun m => ⊔ { l | alpha l ≤[M] m }
-
--- a ⊆ b → sup a ≤ sup b
-lemma sup_subset_to_le {L : Type*} [CompleteLattice L] {a b : Set L}
-  (subset : a ⊆ b) :
-  (⊔ a) ≤[L] (⊔ b) := by
-  apply CompleteLattice.sup_le
-  intros x x_in
-  have : x ∈ b := subset x_in
-  have : x ≤[L] ⊔ b := CompleteLattice.le_sup this
-  exact this
 
 -- gamma_by_alpha は単調
 lemma gamma_by_alpha_mono {L M : Type*} [CompleteLattice L] [CompleteLattice M]
@@ -302,46 +270,6 @@ theorem galois_gamma_by_alpha {L M : Type*} [CompleteLattice L] [CompleteLattice
 ---------------------------------------------------
 -- α が完全加法的ならば Galois 接続 (L, α, γ, M) が存在
 ---------------------------------------------------
-
--- x ≤ y -> sup {x, y} = y
-lemma sup_pair_eq_right {L : Type*} [CompleteLattice L] {x y : L}
-  (h : x ≤[L] y) :
-  (⊔ {x, y}) = y := by
-  have h1 : (⊔ {x, y}) ≤[L] y := by
-    apply CompleteLattice.sup_le
-    intros z z_in
-    cases z_in
-    case a.inl x_eq =>
-      rw [x_eq]
-      exact h
-    case a.inr y_eq =>
-      rw [y_eq]
-      exact Poset.le_refl y
-  have h2 : y ≤[L] ⊔ {x, y} := by
-    apply CompleteLattice.le_sup
-    right
-    exact rfl
-  exact Poset.le_antisym h1 h2
-
--- x ≤ y -> inf {x, y} = x
-lemma inf_pair_eq_left {L : Type*} [CompleteLattice L] {x y : L}
-  (h : x ≤[L] y) :
-  (⊓ {x, y}) = x := by
-  have h1 : x ≤[L] (⊓ {x, y}) := by
-    apply CompleteLattice.le_inf
-    intros z z_in
-    cases z_in
-    case a.inl x_eq =>
-      rw [x_eq]
-      exact Poset.le_refl x
-    case a.inr y_eq =>
-      rw [y_eq]
-      exact h
-  have h2 : (⊓ {x, y}) ≤[L] x := by
-    apply CompleteLattice.inf_le
-    left
-    exact rfl
-  exact Poset.le_antisym h2 h1
 
 -- α が完全加法的ならば Galois 接続が構成できる
 lemma alpha_additive_to_galois {L M : Type*} [CompleteLattice L] [CompleteLattice M] {alpha : L → M}
