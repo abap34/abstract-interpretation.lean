@@ -1,5 +1,6 @@
 import AbstractInterpretation.Order.Poset
 import Mathlib.Data.Set.Basic
+import AbstractInterpretation.Order.Poset
 
 class CompleteLattice (L : Type*) extends Poset L where
   sup    : Set L → L
@@ -86,3 +87,68 @@ theorem top_is_ge_of_complete_lattice {L : Type*} [CompleteLattice L] :
   have : l ∈ (Set.univ : Set L) := Set.mem_univ l
   have : l ≤[L] ⊤[L] := CompleteLattice.le_sup this
   exact this
+
+
+-- Tarski の不動点定理により、完備束上の単調関数は最小不動点を持ち，
+--   lfp F = inf {x | F x ≤ x}
+def lfp {L : Type*} [CompleteLattice L] (f : L → L) : L :=
+  ⊓ {x | f x ≤[L] x}
+
+axiom Tarskis_fixed_point_theorem_lfp {L : Type*} [CompleteLattice L]
+  (f : L → L) (f_mon : monotone f) :
+  f (lfp f) = lfp f
+
+
+-- 同様に，
+--   gfp F = sup {x | x ≤ F x}
+def gfp {L : Type*} [CompleteLattice L] (f : L → L) : L :=
+  ⊔ {x | x ≤[L] f x}
+
+axiom Tarskis_fixed_point_theorem_gfp {L : Type*} [CompleteLattice L]
+  (f : L → L) (f_mon : monotone f) :
+  f (gfp f) = gfp f
+
+
+-- 前不動点は最小不動点より大きい
+theorem prefixed_point_ge_lfp {L : Type*} [CompleteLattice L]
+  (f : L → L) (x : L) (h : f x ≤[L] x) :
+  lfp f ≤[L] x := by
+  unfold lfp
+  apply CompleteLattice.inf_le
+  exact h
+
+-- 後不動点は最大不動点より小さい
+theorem postfixed_point_le_gfp {L : Type*} [CompleteLattice L]
+  (f : L → L) (x : L) (h : x ≤[L] f x) :
+  x ≤[L] gfp f := by
+  unfold gfp
+  apply CompleteLattice.le_sup
+  exact h
+
+
+-- (L, ≤) が完備束のとき
+-- x ≤' y ↔ y ≤ y で定義される順序関係 ≤' を L に入れても
+-- (L, ≤') も完備束になる
+def dual_complete_lattice {L : Type*} [CompleteLattice L] :
+  CompleteLattice L := {
+  toPoset := dual_poset L
+  sup := fun s => ⊓ s
+  inf := fun s => ⊔ s
+  le_sup := fun h => CompleteLattice.inf_le h
+  sup_le := fun h => CompleteLattice.le_inf h
+  inf_le := fun h => CompleteLattice.le_sup h
+  le_inf := fun h => CompleteLattice.sup_le h
+}
+
+
+-- (L ≤) の lfp は (L ≤') の gfp に等しい
+theorem lfp_eq_gfp_dual {L : Type*} [inst : CompleteLattice L]
+  (f : L → L) (_f_mon : monotone f) :
+  @lfp L inst f = @gfp L dual_complete_lattice f := by
+  rfl
+
+-- (L ≤) の gfp は (L ≤') の lfp に等しい
+theorem gfp_eq_lfp_dual {L : Type*} [inst : CompleteLattice L]
+  (f : L → L) (_f_mon : monotone f) :
+  @gfp L inst f = @lfp L dual_complete_lattice f := by
+  rfl

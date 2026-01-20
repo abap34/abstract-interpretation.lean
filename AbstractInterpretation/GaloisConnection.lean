@@ -1,5 +1,6 @@
 import AbstractInterpretation.Order.Poset
 import AbstractInterpretation.Order.CompleteLattice
+import AbstractInterpretation.Order.Poset
 
 structure GaloisConnection {L M : Type*} [Poset L] [Poset M]
   (alpha : L → M) (gamma : M → L) : Prop where
@@ -332,3 +333,33 @@ theorem galois_iff_alpha_is_additive {L M : Type*} [CompleteLattice L] [Complete
     intros h
     have : ∃ gamma : M → L, GaloisConnection alpha gamma := galois_exists_if_alpha_is_additive h
     exact this
+
+
+-- (L, ≤), (M, ≤) を poset とし， (α, γ) をそれらの間の Galois 接続とする．
+-- ここで L, M の順序を逆に取ったものをそれぞれ ≤[L_rev], ≤[M_rev] と表すことにする．
+-- このとき (α, γ) は (M_rev, ≤[M_rev]), (L_rev, ≤[L_rev]) の間の Galois 接続でもある．
+theorem galois_connection_dual {L M : Type*} [instL : Poset L] [instM : Poset M]
+  {alpha : L → M} {gamma : M → L}
+  (gc : GaloisConnection alpha gamma) :
+  let instL' : Poset L := {
+    le := fun x y => @Poset.le L instL y x
+    le_refl := fun x => @Poset.le_refl L instL x
+    le_trans := fun hxy hyz => @Poset.le_trans L instL _ _ _ hyz hxy
+    le_antisym := fun hxy hyx => @Poset.le_antisym L instL _ _ hyx hxy
+  }
+  let instM' : Poset M := {
+    le := fun x y => @Poset.le M instM y x
+    le_refl := fun x => @Poset.le_refl M instM x
+    le_trans := fun hxy hyz => @Poset.le_trans M instM _ _ _ hyz hxy
+    le_antisym := fun hxy hyx => @Poset.le_antisym M instM _ _ hyx hxy
+  }
+  @GaloisConnection M L instM' instL' gamma alpha := by
+    intro instL' instM'
+    exact {
+      alpha_mon := fun m1 m2 (h : @Poset.le M instM m2 m1) =>
+        @gc.gamma_mon m2 m1 h
+      gamma_mon := fun l1 l2 (h : @Poset.le L instL l2 l1) =>
+        @gc.alpha_mon l2 l1 h
+      unit := fun m => @gc.counit m
+      counit := fun l => @gc.unit l
+    }
